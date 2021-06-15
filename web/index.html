@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="/timeline/js/timeline.min.js"></script>
+    <link href="/timeline/css/timeline.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #fafafa;
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+        }
+
+        .title {
+            background-color: #fff;
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+            display: block;
+            font-size: 24px;
+            font-weight: normal;
+            margin: 0;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .timeline {
+            margin: 0 32px 32px;
+        }
+
+        .timeline__items {
+            padding: 0;
+        }
+
+        .timeline__item {
+            list-style-type: none;
+        }
+
+        .timeline__content {
+            align-items: center;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+            display: flex;
+        }
+
+        .timeline__content--left {
+            flex: 1;
+        }
+
+        .timeline__item--left .timeline__content::before {
+            border-bottom: 10px solid transparent;
+            border-left: 12px solid #ddd;
+            border-top: 10px solid transparent;
+        }
+
+        .timeline__item--left .timeline__content::after {
+            border-bottom: 9px solid transparent;
+            border-left: 11px solid #fff;
+            border-top: 9px solid transparent;
+        }
+
+        .timeline__item--right .timeline__content::before {
+            border-bottom: 10px solid transparent;
+            border-right: 12px solid #ddd;
+            border-left: none;
+            border-top: 10px solid transparent;
+        }
+
+        .timeline__item--right .timeline__content::after {
+            border-bottom: 9px solid transparent;
+            border-right: 11px solid #fff;
+            border-left: none;
+            border-top: 9px solid transparent;
+        }
+
+        .detection__bounds {
+            color: #aaa;
+            display: block;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .detection__common-name {
+            display: block;
+            font-size: 20px;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        .detection__scientific-name {
+            color: #999;
+            display: block;
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+        }
+
+        .detection--confidence {
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detection--confidence__value {
+            font-size: 20px;
+        }
+
+        .detection--confidence__label {
+            color: #aaa;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">
+        Recent herkende soorten
+    </h1>
+    <div class="timeline">
+        <div class="timeline__wrap">
+            <ul class="timeline__items"></ul>
+        </div>
+    </div>
+    <script>
+        const timelineItemsElement = document.querySelector('.timeline__items');
+
+        updateTimeline();
+        setInterval(updateTimeline, 30 * 1000);
+
+        function updateTimeline() {
+            fetch('http://127.0.0.1:5000/detections')
+                .then(response => response.json())
+                .then(detections => {
+                    timelineItemsElement.innerHTML = ''; // clear previous timeline items
+                    detections.forEach(detection => {
+                        const timelineItem = document.createElement('li');
+                        timelineItem.classList.add('timeline__item');
+
+                        const timelineItemContent = document.createElement('div');
+                        timelineItemContent.classList.add('timeline__content');
+
+                        const timelineItemLeftContent = document.createElement('div');
+                        timelineItemLeftContent.classList.add('timeline__content--left');
+
+                        const timelineItemRightContent = document.createElement('div');
+                        timelineItemRightContent.classList.add('timeline__content--right');
+
+                        const detectionBounds = document.createElement('span');
+                        detectionBounds.classList.add('detection__bounds');
+
+                        const detectionStart = document.createElement('time');
+                        detectionStart.textContent = new Date(detection.start * 1000).toLocaleTimeString();
+                        detectionStart.setAttribute('datetime', new Date(detection.start * 1000));
+
+                        const detectionEnd = document.createElement('time');
+                        detectionEnd.textContent = new Date(detection.end * 1000).toLocaleTimeString();
+                        detectionEnd.setAttribute('datetime', new Date(detection.end * 1000));
+
+                        detectionBounds.append(detectionStart, ' - ', detectionEnd);
+
+                        timelineItemLeftContent.append(detectionBounds);
+
+                        const detectionCommonName = document.createElement('h2');
+                        detectionCommonName.classList.add('detection__common-name');
+                        detectionCommonName.textContent = detection.common_name;
+
+                        const detectionScientificName = document.createElement('span');
+                        detectionScientificName.classList.add('detection__scientific-name');
+                        detectionScientificName.textContent = detection.scientific_name;
+
+                        const detectionConfidence = document.createElement('span');
+                        detectionConfidence.classList.add('detection--confidence');
+
+                        const detectionConfidenceValue = document.createElement('span');
+                        detectionConfidenceValue.classList.add('detection--confidence__value');
+                        detectionConfidenceValue.textContent = `${parseInt(detection.confidence * 100)}%`;
+
+                        const detectionConfidenceLabel = document.createElement('span');
+                        detectionConfidenceLabel.classList.add('detection--confidence__label');
+                        detectionConfidenceLabel.textContent = 'zeker';
+
+                        detectionConfidence.append(detectionConfidenceValue, detectionConfidenceLabel);
+
+                        timelineItemLeftContent.append(detectionCommonName, detectionScientificName);
+                        timelineItemRightContent.append(detectionConfidence);
+
+                        timelineItemContent.append(timelineItemLeftContent, timelineItemRightContent);
+
+                        timelineItem.appendChild(timelineItemContent);
+                        timelineItemsElement.appendChild(timelineItem);
+
+                        timeline(document.querySelectorAll('.timeline'), {
+                            verticalStartPosition: 'right',
+                            verticalTrigger: '150px'
+                        });
+                    });
+                });
+        }
+    </script>
+</body>
+</html>
