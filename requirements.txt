@@ -3,3 +3,4 @@ wave
 tensorflow
 librosa
 numpy
+flask
